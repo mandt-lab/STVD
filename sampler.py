@@ -1,0 +1,71 @@
+import os
+from model.model import Unet, Flow, GaussianDiffusion, Trainer
+from config import config
+
+def main():
+
+    if config.data_config["multi"]:
+
+        in_ch_model = 3*config.data_config["img_channel"] + 10 + 1 # all channels plus noise : (1 + 4 + 1) + 1 : (precip + multi + topo) + noise
+        in_ch_flow = config.data_config["img_channel"] + 10 + 1 # all channels from current low res and past two high res : 3 * (1 + 4 + 1) : 3 * (precip + multi + topo)
+        in_ch_isr = config.data_config["img_channel"] + 10 + 1 # all channels from current low res : 1 + 4 + 1 : precip + multi + topo
+
+    else:
+
+        in_ch_model = 2*config.data_config["img_channel"]
+        in_ch_flow = config.data_config["img_channel"]
+        in_ch_isr = config.data_config["img_channel"]
+
+    model = Unet(
+        dim = config.dim,
+        channels = in_ch_model,
+        out_dim = config.data_config["img_channel"],
+        dim_mults = config.dim_mults,
+        learned_sinusoidal_cond = config.learned_sinusoidal_cond,
+        random_fourier_features = config.random_fourier_features,
+        learned_sinusoidal_dim = config.learned_sinusoidal_dim
+    ).cuda()
+
+    flow = Flow(
+        dim = config.dim,
+        channels = in_ch_flow,
+        out_dim = config.data_config["img_channel"],
+        dim_mults = config.dim_mults
+    ).cuda()
+    
+    diffusion = GaussianDiffusion(
+        model,
+        flow,
+        image_size = config.data_config["img_size"],
+        in_ch = in_ch_isr,
+        timesteps = config.diffusion_steps,
+        sampling_timesteps = config.sampling_steps,
+        loss_type = config.loss,
+        objective = config.objective
+    ).cuda()
+
+    trainer = Trainer(
+        diffusion,
+        None,
+        None,
+        train_batch_size = config.batch_size,
+        train_lr = config.lr,
+        train_num_steps = config.steps,
+        gradient_accumulate_every = config.grad_acc,
+        val_num_of_batch = config.val_num_of_batch,
+        save_and_sample_every = config.save_and_sample_every,
+        ema_decay = config.ema_decay,
+        amp = config.amp,
+        split_batches = config.split_batches,
+        eval_folder = os.path.join(config.eval_folder, f"{config.data_name}/"),
+        results_folder = os.path.join(config.results_folder, f"{config.model_name}/"),
+        config = config
+    )
+
+    trainer.load(config.milestone)
+
+    trainer.sample()
+
+if __name__ == "__main__":
+    print(config)
+    main()
