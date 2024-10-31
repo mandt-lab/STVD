@@ -1,0 +1,4 @@
+- Codebase for: Precipitation Downscaling with Spatiotemporal Video Diffusion
+- The codebase contain necessary codes for both training and sampling.
+- Part of the code is adapted from this [codebase](https://github.com/lucidrains/denoising-diffusion-pytorch).
+- Data and trained model comes later.
