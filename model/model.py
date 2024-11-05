@@ -1221,7 +1221,6 @@ class Trainer(object):
         self.multi = config.data_config["multi"]
         self.rollout = config.rollout
         self.rollout_batch = config.rollout_batch
-        self.minipatch = config.data_config["minipatch"]
         self.logscale = config.data_config["logscale"]
 
         self.model = diffusion_model
@@ -1338,13 +1337,6 @@ class Trainer(object):
                     data = next(self.train_dl)
                     lres = data['LR'].to(device)
                     hres = data['HR'].to(device)
-
-                    if self.minipatch:
-                        
-                        x_st = randint(0, 36)
-                        y_st = randint(0, 36)
-                        lres = crop(lres, x_st, y_st, 12, 12)
-                        hres = crop(hres, 8 * x_st, 8 * y_st, 96, 96)
 
                     with self.accelerator.autocast():
                         
@@ -1584,8 +1576,8 @@ class Trainer(object):
 
         with torch.no_grad():
 
-            #for tile in range(6):
-            for tile in [4]:
+            for tile in range(6):
+            #for tile in [4]:
             
                 if self.rollout == 'full':
 
